@@ -23,7 +23,7 @@
  *
  */
 
-package internal
+package base
 
 import (
 	"encoding/json"
@@ -60,7 +60,7 @@ func (rp *replier) Reply(writer http.ResponseWriter, response *Response) {
 	Reply(writer,response)
 }
 
-func NewReplier(writer io.Writer, debug bool)Replier {
+func NewReplier(writer io.Writer, debug bool) Replier {
 	return &replier{
 		Logger:    writer,
 		DebugMode: debug,

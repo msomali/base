@@ -23,7 +23,7 @@
  *
  */
 
-package internal
+package base
 
 import (
 	"bytes"
@@ -31,7 +31,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/techcraftt/base/internal/io"
+	"github.com/techcraftt/base/io"
 	stdio "io"
 	"net/http"
 	"net/http/httputil"
@@ -60,8 +60,8 @@ type (
 	Receipt struct {
 		Request *http.Request
 		BearerToken string
-		BasicAuth BasicAuth
-		ApiKey string
+		BasicAuth   BasicAuth
+		ApiKey      string
 		RemoteAddress string
 		ForwardedFor string
 	}

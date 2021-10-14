@@ -1,2 +1,2 @@
-# base (WIP)
-the base code for creating api clients using golang 
+# base
+the base code for creating mobile money api clients using golang 

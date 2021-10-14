@@ -23,7 +23,7 @@
  *
  */
 
-package internal
+package base
 
 import (
 	"bytes"
