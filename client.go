@@ -29,7 +29,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/techcraftt/base/io"
+	"github.com/techcraftlabs/base/io"
 	stdio "io"
 	"net/http"
 	"net/http/httputil"
@@ -42,21 +42,21 @@ const (
 )
 
 type (
-	BaseClient struct {
+	Client struct {
 		Http      *http.Client
 		Logger    stdio.Writer // for logging purposes
 		DebugMode bool
 		certPool  *x509.CertPool
 	}
 
-	ClientOption func(client *BaseClient)
+	ClientOption func(client *Client)
 )
 
-func NewBaseClient(opts ...ClientOption) *BaseClient {
+func NewClient(opts ...ClientOption) *Client {
 	defClient := &http.Client{
 		Timeout: defaultTimeout,
 	}
-	client := &BaseClient{
+	client := &Client{
 		Http:      defClient,
 		Logger:    io.Stderr,
 		DebugMode: true,
@@ -69,12 +69,12 @@ func NewBaseClient(opts ...ClientOption) *BaseClient {
 	return client
 }
 
-func (client *BaseClient) logPayload(t PayloadType, prefix string, payload interface{}) {
+func (client *Client) logPayload(t PayloadType, prefix string, payload interface{}) {
 	buf, _ := MarshalPayload(t, payload)
 	_, _ = client.Logger.Write([]byte(fmt.Sprintf("%s: %s\n\n", prefix, buf.String())))
 }
 
-func (client *BaseClient) log(name string, request *http.Request) {
+func (client *Client) log(name string, request *http.Request) {
 
 	if request != nil {
 		reqDump, _ := httputil.DumpRequest(request, true)
@@ -91,7 +91,7 @@ func (client *BaseClient) log(name string, request *http.Request) {
 
 // logOut is like log except this is for outgoing client requests:
 // http.Request that is supposed to be sent to tigo
-func (client *BaseClient) logOut(name string, request *http.Request, response *http.Response) {
+func (client *Client) logOut(name string, request *http.Request, response *http.Response) {
 
 	if request != nil {
 		reqDump, _ := httputil.DumpRequestOut(request, true)
@@ -116,7 +116,7 @@ func (client *BaseClient) logOut(name string, request *http.Request, response *h
 
 // WithDebugMode set debug mode to true or false
 func WithDebugMode(debugMode bool) ClientOption {
-	return func(client *BaseClient) {
+	return func(client *Client) {
 		client.DebugMode = debugMode
 
 	}
@@ -127,7 +127,7 @@ func WithDebugMode(debugMode bool) ClientOption {
 // it can be replaced by any io.Writer unless its nil which in that case
 // it will be ignored
 func WithLogger(out stdio.Writer) ClientOption {
-	return func(client *BaseClient) {
+	return func(client *Client) {
 		if out == nil {
 			return
 		}
@@ -144,7 +144,7 @@ func WithHTTPClient(httpClient *http.Client) ClientOption {
 
 	// TODO check if its really necessary to set the default Timeout to 1 minute
 
-	return func(client *BaseClient) {
+	return func(client *Client) {
 		if httpClient == nil {
 			return
 		}
@@ -156,7 +156,7 @@ func WithHTTPClient(httpClient *http.Client) ClientOption {
 func WithCACert(caCert []byte) ClientOption {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
-	return func(client *BaseClient) {
+	return func(client *Client) {
 		if caCert == nil {
 			return
 		}
