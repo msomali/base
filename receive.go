@@ -82,6 +82,11 @@ func NewReceiver(writer stdio.Writer, debug bool) Receiver {
 }
 
 func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v interface{}) (*Receipt, error) {
+	var (
+		bodyBytes []byte
+		err error
+	)
+
 	receipt := new(Receipt)
 
 
@@ -111,13 +116,16 @@ func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v i
 	receipt.Request = rClone
 	contentType := r.Header.Get("Content-Type")
 	payloadType := categorizeContentType(contentType)
-	body, err := stdio.ReadAll(r.Body)
+	if r.Body != nil{
+		bodyBytes, err = stdio.ReadAll(r.Body)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
 	// restore request body
-	r.Body = stdio.NopCloser(bytes.NewBuffer(body))
+	r.Body = stdio.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	defer func(debug bool) {
 		if debug {
@@ -138,12 +146,12 @@ func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v i
 				return
 			}
 		}(r.Body)
-		r.Body = stdio.NopCloser(bytes.NewBuffer(body))
+		r.Body = stdio.NopCloser(bytes.NewBuffer(bodyBytes))
 		return receipt, err
 
 	case XmlPayload:
-		r.Body = stdio.NopCloser(bytes.NewBuffer(body))
-		return receipt, xml.Unmarshal(body, v)
+		r.Body = stdio.NopCloser(bytes.NewBuffer(bodyBytes))
+		return receipt, xml.Unmarshal(bodyBytes, v)
 	}
 
 	return receipt, err

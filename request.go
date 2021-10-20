@@ -44,6 +44,7 @@ type (
 		URL         string
 		Endpoint    string
 		PayloadType PayloadType
+		BasicAuth *BasicAuth
 		Payload     interface{}
 		Headers     map[string]string
 		QueryParams map[string]string
@@ -138,7 +139,10 @@ func basicAuth(username, password string) string {
 // WithBasicAuth add password and username to request headers
 func WithBasicAuth(username, password string) RequestOption {
 	return func(request *Request) {
-		request.Headers["Authorization "] = "Basic " + basicAuth(username, password)
+		request.BasicAuth = &BasicAuth{
+			Username: username,
+			Password: password,
+		}
 	}
 }
 
@@ -202,6 +206,12 @@ func NewRequestWithContext(ctx context.Context, request *Request) (req *http.Req
 		values := req.URL.Query()
 		values.Add(name, value)
 		req.URL.RawQuery = values.Encode()
+	}
+
+	ba := request.BasicAuth
+
+	if ba != nil{
+		req.SetBasicAuth(ba.Username,ba.Password)
 	}
 
 	return req, nil
