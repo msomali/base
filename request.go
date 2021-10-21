@@ -27,7 +27,6 @@ package base
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -126,15 +125,15 @@ func WithMoreHeaders(headers map[string]string) RequestOption {
 	}
 }
 
-// See 2 (end of page 4) https://www.ietf.org/rfc/rfc2617.txt
-// "To receive authorization, the client sends the userid and password,
-// separated by a single colon (":") character, within a base64
-// encoded string in the credentials."
-// It is not meant to be urlencoded.
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
-}
+//// See 2 (end of page 4) https://www.ietf.org/rfc/rfc2617.txt
+//// "To receive authorization, the client sends the userid and password,
+//// separated by a single colon (":") character, within a base64
+//// encoded string in the credentials."
+//// It is not meant to be urlencoded.
+//func basicAuth(username, password string) string {
+//	auth := username + ":" + password
+//	return base64.StdEncoding.EncodeToString([]byte(auth))
+//}
 
 // WithBasicAuth add password and username to request headers
 func WithBasicAuth(username, password string) RequestOption {

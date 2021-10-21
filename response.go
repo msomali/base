@@ -25,7 +25,10 @@
 
 package base
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type (
 	// Response contains details to be sent as a response to tigo
@@ -98,7 +101,7 @@ func WithResponseError(err error) ResponseOption {
 	}
 }
 
-func ResponseFmt(response *Response) (string,error) {
+func responseFormat(response *Response) (string,error) {
 
 	var(
 		errMsg string
@@ -109,6 +112,12 @@ func ResponseFmt(response *Response) (string,error) {
 	hs := response.Headers
 	statusCode := response.StatusCode
 
+	builder := strings.Builder{}
+	for key, val := range hs {
+		builder.WriteString(fmt.Sprintf("%s: %s\n",key,val))
+	}
+
+	headersString := builder.String()
 	if response.Error != nil{
 		errMsg = response.Error.Error()
 	}
@@ -124,6 +133,6 @@ func ResponseFmt(response *Response) (string,error) {
 	}
 	payload := buffer.String()
 
-	fmtString := fmt.Sprintf("\nRESPONSE DUMP:\nstatus code: %d\nheaders: %v\nerror: %s\npayload: %s\n",statusCode,hs,errMsg,payload)
+	fmtString := fmt.Sprintf("\nRESPONSE DUMP:\nstatus code: %d\nheaders: %sother details:\nerror: %s\npayload: %s\n",statusCode,headersString,errMsg,payload)
 	return fmtString, nil
 }

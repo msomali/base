@@ -47,7 +47,7 @@ type(
 )
 
 func (rp *replier) Reply(writer http.ResponseWriter, response *Response) {
-	responseFmt, err := ResponseFmt(response)
+	responseFmt, err := responseFormat(response)
 	if err != nil {
 		return
 	}
@@ -57,7 +57,7 @@ func (rp *replier) Reply(writer http.ResponseWriter, response *Response) {
 		}
 	}(rp.DebugMode)
 
-	Reply(writer,response)
+	reply(writer,response)
 }
 
 func NewReplier(writer io.Writer, debug bool) Replier {
@@ -67,7 +67,7 @@ func NewReplier(writer io.Writer, debug bool) Replier {
 	}
 }
 
-func Reply(writer http.ResponseWriter, r *Response) {
+func reply(writer http.ResponseWriter, r *Response) {
 	if r.Payload == nil {
 
 		for key, value := range r.Headers {

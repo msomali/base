@@ -89,7 +89,6 @@ func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v i
 
 	receipt := new(Receipt)
 
-
 	// capture bearer token
 	reqToken := r.Header.Get("Authorization")
 	splitToken := strings.Split(reqToken, "Bearer")
@@ -256,9 +255,10 @@ func ReceivePayload(r *http.Request, v interface{}) error {
 // logRequest is called to print the details of http.Request received
 func (rc *receiver) logRequest(name string, request *http.Request) {
 
+	rn := strings.ToUpper(fmt.Sprintf("%s request",name))
 	if request != nil && rc.DebugMode {
 		reqDump, _ := httputil.DumpRequest(request, true)
-		_, err := fmt.Fprintf(rc.Logger, "%s REQUEST: %s\n", name, reqDump)
+		_, err := fmt.Fprintf(rc.Logger, "%s : %s\n",rn, reqDump)
 		if err != nil {
 			fmt.Printf("error while logging %s request: %v\n",
 				strings.ToLower(name), err)
