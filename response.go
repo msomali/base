@@ -27,6 +27,7 @@ package base
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 )
 
@@ -35,20 +36,76 @@ type (
 	// when tigo make callback request, name check request or payment
 	// request.
 	Response struct {
-		StatusCode int               `json:"status_code"`
-		Payload    interface{}       `json:"payload"`
-		Headers    map[string]string `json:"headers"`
-		Error      error             `json:"error"`
+		HTTP       *http.Response
+		StatusCode int
+		Body       interface{}
+		HeaderMap  map[string]string
+		Error      error
 	}
 
-	ResponseOption func(response *Response)
+	ResponseBuilder struct {
+		statusCode int
+		payload    interface{}
+		headers    map[string]string
+		error      error
+	}
+
+	responseBuilder interface {
+		StatusCode(int) *ResponseBuilder
+		Payload(interface{}) *ResponseBuilder
+		Headers(map[string]string) *ResponseBuilder
+		Error(error) *ResponseBuilder
+		Build() *Response
+	}
+
+	ResponseOption func(response *ResponseBuilder)
 )
 
-// NewResponse create a response to be sent back to Tigo. HTTP Status code, payload and its
-// type need to be specified. Other fields like  Response.Error and Response.Headers can be
-// changed using WithMoreResponseHeaders (add headers), WithResponseHeaders (replace all the
-// existing ) and WithResponseError to add error its default value is nil, default value of
-// Response.Headers is
+func (r *ResponseBuilder) StatusCode(i int) *ResponseBuilder {
+	r.statusCode = i
+	return r
+}
+
+func (r *ResponseBuilder) Payload(i interface{}) *ResponseBuilder {
+	r.payload = i
+	return r
+}
+
+func (r *ResponseBuilder) Headers(m map[string]string) *ResponseBuilder {
+	r.headers = m
+	return r
+}
+
+func (r *ResponseBuilder) Error(err error) *ResponseBuilder {
+	r.error = err
+	return r
+}
+
+func (r *ResponseBuilder) Build() *Response {
+	return &Response{
+		StatusCode: r.statusCode,
+		Body:       r.payload,
+		HeaderMap:  r.headers,
+		Error:      r.error,
+	}
+}
+
+func NewResponseBuilder() *ResponseBuilder {
+	return &ResponseBuilder{
+		statusCode: 200,
+		payload:    nil,
+		headers: map[string]string{
+			"Content-Type": cTypeJson,
+		},
+		error: nil,
+	}
+}
+
+// NewResponse create a response to be sent back to Tigo. HTTP Status code, Body and its
+// type need to be specified. Other fields like  Response.Error and Response.HeaderMap can be
+// changed using WithMoreResponseHeaders (add HeaderMap), WithResponseHeaders (replace all the
+// existing ) and WithResponseError to add Error its default value is nil, default value of
+// Response.HeaderMap is
 // defaultResponseHeader = map[string]string{
 //		"Content-Type": ContentTypeXml,
 // }
@@ -60,79 +117,79 @@ func NewResponse(status int, payload interface{}, opts ...ResponseOption) *Respo
 		}
 	)
 
-	response := &Response{
-		StatusCode: status,
-		Payload:    payload,
-		Headers:    defaultResponseHeader,
-		Error:      nil,
+	rb := &ResponseBuilder{
+		statusCode: status,
+		payload:    payload,
+		headers:    defaultResponseHeader,
+		error:      nil,
 	}
 
 	for _, opt := range opts {
-		opt(response)
+		opt(rb)
 	}
 
-	return response
+	return rb.Build()
 }
 
 func WithResponseHeaders(headers map[string]string) ResponseOption {
-	return func(response *Response) {
-		response.Headers = headers
+	return func(response *ResponseBuilder) {
+		response.headers = headers
 	}
 }
 
 func WithMoreResponseHeaders(headers map[string]string) ResponseOption {
-	return func(response *Response) {
+	return func(response *ResponseBuilder) {
 		for key, value := range headers {
-			response.Headers[key] = value
+			response.headers[key] = value
 		}
 	}
 }
 
 func WithDefaultXMLHeader() ResponseOption {
-	return func(response *Response) {
-		response.Headers["Content-Type"] = cTypeAppXml
+	return func(response *ResponseBuilder) {
+		response.headers["Content-Type"] = cTypeAppXml
 	}
 }
 
 func WithResponseError(err error) ResponseOption {
 
-	return func(response *Response) {
-		response.Error = err
+	return func(response *ResponseBuilder) {
+		response.error = err
 	}
 }
 
-func responseFormat(response *Response) (string,error) {
+func responseFormat(response *Response) (string, error) {
 
-	var(
+	var (
 		errMsg string
 	)
-	if response == nil{
-		return "",fmt.Errorf("response is nil")
+	if response == nil {
+		return "", fmt.Errorf("response is nil")
 	}
-	hs := response.Headers
+	hs := response.HeaderMap
 	statusCode := response.StatusCode
 
 	builder := strings.Builder{}
 	for key, val := range hs {
-		builder.WriteString(fmt.Sprintf("%s: %s\n",key,val))
+		builder.WriteString(fmt.Sprintf("%s: %s\n", key, val))
 	}
 
 	headersString := builder.String()
-	if response.Error != nil{
+	if response.Error != nil {
 		errMsg = response.Error.Error()
 	}
-	if response.Error == nil{
+	if response.Error == nil {
 		errMsg = "nil"
 	}
 
-	contentType := response.Headers["Content-Type"]
+	contentType := response.HeaderMap["Content-Type"]
 	payloadType := categorizeContentType(contentType)
-	buffer, err := MarshalPayload(payloadType,response.Payload)
-	if err != nil{
-		return "",err
+	buffer, err := MarshalPayload(payloadType, response.Body)
+	if err != nil {
+		return "", err
 	}
 	payload := buffer.String()
 
-	fmtString := fmt.Sprintf("\nRESPONSE DUMP:\nstatus code: %d\nheaders: %sother details:\nerror: %s\npayload: %s\n",statusCode,headersString,errMsg,payload)
+	fmtString := fmt.Sprintf("\nRESPONSE DUMP:\nstatus code: %d\nheaders: %sother details:\nerror: %s\npayload: %s\n", statusCode, headersString, errMsg, payload)
 	return fmtString, nil
 }

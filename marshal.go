@@ -40,7 +40,7 @@ var (
 	ErrInvalidFormPayload = errors.New("invalid form submitted: type url.Values is expected")
 )
 
-// MarshalPayload returns the JSON/XML encoding of payload.
+// MarshalPayload returns the JSON/XML encoding of Body.
 func MarshalPayload(payloadType PayloadType, payload interface{}) (buffer *bytes.Buffer, err error) {
 
 	switch payloadType {
