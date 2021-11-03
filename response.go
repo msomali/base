@@ -35,24 +35,81 @@ type (
 	// when tigo make callback request, name check request or payment
 	// request.
 	Response struct {
-		StatusCode int               `json:"status_code"`
-		Payload    interface{}       `json:"payload"`
-		Headers    map[string]string `json:"headers"`
-		Error      error             `json:"error"`
+		statusCode int
+		payload    interface{}
+		headers    map[string]string
+		error      error
 	}
 
-	ResponseOption func(response *Response)
+	ResponseBuilder struct {
+		statusCode int
+		payload    interface{}
+		headers    map[string]string
+		error      error
+	}
+
+	responseBuilder interface {
+		StatusCode(int)*ResponseBuilder
+		Payload(interface{})*ResponseBuilder
+		Headers(map[string]string)*ResponseBuilder
+		Error(error)*ResponseBuilder
+		Build()*Response
+	}
+
+	ResponseOption func(response *ResponseBuilder)
 )
 
+func (r *ResponseBuilder) StatusCode(i int) *ResponseBuilder {
+	r.statusCode = i
+	return r
+}
+
+func (r *ResponseBuilder) Payload(i interface{}) *ResponseBuilder {
+	r.payload = i
+	return r
+}
+
+func (r *ResponseBuilder) Headers(m map[string]string) *ResponseBuilder {
+	r.headers = m
+	return r
+}
+
+func (r *ResponseBuilder) Error(err error) *ResponseBuilder {
+	r.error = err
+	return r
+}
+
+func (r *ResponseBuilder) Build() *Response {
+	return &Response{
+		statusCode: r.statusCode,
+		payload:    r.payload,
+		headers:    r.headers,
+		error:      r.error,
+	}
+}
+
+func NewResponseBuilder()*ResponseBuilder{
+	return &ResponseBuilder{
+		statusCode: 200,
+		payload:    nil,
+		headers: map[string]string{
+			"Content-Type":cTypeJson,
+		},
+		error:      nil,
+	}
+}
+
+
 // NewResponse create a response to be sent back to Tigo. HTTP Status code, payload and its
-// type need to be specified. Other fields like  Response.Error and Response.Headers can be
+// type need to be specified. Other fields like  Response.error and Response.headers can be
 // changed using WithMoreResponseHeaders (add headers), WithResponseHeaders (replace all the
 // existing ) and WithResponseError to add error its default value is nil, default value of
-// Response.Headers is
+// Response.headers is
 // defaultResponseHeader = map[string]string{
 //		"Content-Type": ContentTypeXml,
 // }
 func NewResponse(status int, payload interface{}, opts ...ResponseOption) *Response {
+
 
 	var (
 		defaultResponseHeader = map[string]string{
@@ -60,44 +117,44 @@ func NewResponse(status int, payload interface{}, opts ...ResponseOption) *Respo
 		}
 	)
 
-	response := &Response{
-		StatusCode: status,
-		Payload:    payload,
-		Headers:    defaultResponseHeader,
-		Error:      nil,
+	rb := &ResponseBuilder{
+		statusCode: status,
+		payload:    payload,
+		headers:    defaultResponseHeader,
+		error:      nil,
 	}
 
 	for _, opt := range opts {
-		opt(response)
+		opt(rb)
 	}
 
-	return response
+	return rb.Build()
 }
 
 func WithResponseHeaders(headers map[string]string) ResponseOption {
-	return func(response *Response) {
-		response.Headers = headers
+	return func(response *ResponseBuilder) {
+		response.headers = headers
 	}
 }
 
 func WithMoreResponseHeaders(headers map[string]string) ResponseOption {
-	return func(response *Response) {
+	return func(response *ResponseBuilder) {
 		for key, value := range headers {
-			response.Headers[key] = value
+			response.headers[key] = value
 		}
 	}
 }
 
 func WithDefaultXMLHeader() ResponseOption {
-	return func(response *Response) {
-		response.Headers["Content-Type"] = cTypeAppXml
+	return func(response *ResponseBuilder) {
+		response.headers["Content-Type"] = cTypeAppXml
 	}
 }
 
 func WithResponseError(err error) ResponseOption {
 
-	return func(response *Response) {
-		response.Error = err
+	return func(response *ResponseBuilder) {
+		response.error = err
 	}
 }
 
@@ -109,8 +166,8 @@ func responseFormat(response *Response) (string,error) {
 	if response == nil{
 		return "",fmt.Errorf("response is nil")
 	}
-	hs := response.Headers
-	statusCode := response.StatusCode
+	hs := response.headers
+	statusCode := response.statusCode
 
 	builder := strings.Builder{}
 	for key, val := range hs {
@@ -118,16 +175,16 @@ func responseFormat(response *Response) (string,error) {
 	}
 
 	headersString := builder.String()
-	if response.Error != nil{
-		errMsg = response.Error.Error()
+	if response.error != nil{
+		errMsg = response.error.Error()
 	}
-	if response.Error == nil{
+	if response.error == nil{
 		errMsg = "nil"
 	}
 
-	contentType := response.Headers["Content-Type"]
+	contentType := response.headers["Content-Type"]
 	payloadType := categorizeContentType(contentType)
-	buffer, err := MarshalPayload(payloadType,response.Payload)
+	buffer, err := MarshalPayload(payloadType,response.payload)
 	if err != nil{
 		return "",err
 	}

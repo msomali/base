@@ -68,47 +68,48 @@ func NewReplier(writer io.Writer, debug bool) Replier {
 }
 
 func reply(writer http.ResponseWriter, r *Response) {
-	if r.Payload == nil {
+	if r.payload == nil {
 
-		for key, value := range r.Headers {
+		for key, value := range r.headers {
 			writer.Header().Add(key, value)
 		}
-		writer.WriteHeader(r.StatusCode)
+		writer.WriteHeader(r.statusCode)
 
 		return
 	}
 
-	pType := categorizeContentType(r.Headers["Content-Type"])
-
+	cType := r.headers["Content-Type"]
+	pType := categorizeContentType(cType)
+	payload := r.payload
 	switch pType {
 	case XmlPayload:
-		payload, err := xml.MarshalIndent(r.Payload, "", "  ")
+		payload1, err := xml.MarshalIndent(payload, "", "  ")
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		for key, value := range r.Headers {
+		for key, value := range r.headers {
 			writer.Header().Set(key, value)
 		}
 
-		writer.WriteHeader(r.StatusCode)
+		writer.WriteHeader(r.statusCode)
 		writer.Header().Set("Content-Type", cTypeAppXml)
-		_, err = writer.Write(payload)
+		_, err = writer.Write(payload1)
 		return
 
 	case JsonPayload:
-		payload, err := json.Marshal(r.Payload)
+		payload1, err := json.Marshal(payload)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		for key, value := range r.Headers {
+		for key, value := range r.headers {
 			writer.Header().Set(key, value)
 		}
 		writer.Header().Set("Content-Type", cTypeJson)
-		writer.WriteHeader(r.StatusCode)
-		_, err = writer.Write(payload)
+		writer.WriteHeader(r.statusCode)
+		_, err = writer.Write(payload1)
 		return
 	}
 }

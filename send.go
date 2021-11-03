@@ -91,7 +91,7 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 
 	response := new(Response)
 	statusCode := res.StatusCode
-	response.StatusCode = statusCode
+	response.statusCode = statusCode
 
 	contentType := res.Header.Get("Content-Type")
 	headers := make(map[string]string)
@@ -99,7 +99,7 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 		headers[strings.ToLower(k)] = v[0]
 	}
 
-	response.Headers = headers
+	response.headers = headers
 	cType := categorizeContentType(contentType)
 
 	isJSON := cType == JsonPayload
@@ -115,10 +115,10 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 				return nil, fmt.Errorf("%w: %v", dErr, errDecodingBody)
 			}
 
-			response.Payload = body
+			response.payload = body
 
 			if !isOK {
-				response.Error = DoErr
+				response.error = DoErr
 				return response, nil
 			}
 
@@ -132,9 +132,9 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 				return nil, fmt.Errorf("%w: %v", dErr, errDecodingBody)
 			}
 
-			response.Payload = body
+			response.payload = body
 			if !isOK {
-				response.Error = DoErr
+				response.error = DoErr
 				return response, nil
 			}
 			return response, nil
@@ -145,7 +145,7 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 	}
 
 	if !isOK {
-		response.Error = DoErr
+		response.error = DoErr
 	}
 	return response, nil
 
