@@ -32,13 +32,13 @@ import (
 	"net/http"
 )
 
-var(
+var (
 	_ Replier = (*replier)(nil)
 )
 
-type(
+type (
 	replier struct {
-		Logger io.Writer
+		Logger    io.Writer
 		DebugMode bool
 	}
 	Replier interface {
@@ -52,12 +52,12 @@ func (rp *replier) Reply(writer http.ResponseWriter, response *Response) {
 		return
 	}
 	defer func(debug bool) {
-		if debug{
+		if debug {
 			_, _ = rp.Logger.Write([]byte(responseFmt))
 		}
 	}(rp.DebugMode)
 
-	reply(writer,response)
+	reply(writer, response)
 }
 
 func NewReplier(writer io.Writer, debug bool) Replier {
@@ -68,19 +68,19 @@ func NewReplier(writer io.Writer, debug bool) Replier {
 }
 
 func reply(writer http.ResponseWriter, r *Response) {
-	if r.payload == nil {
+	if r.Body == nil {
 
-		for key, value := range r.headers {
+		for key, value := range r.HeaderMap {
 			writer.Header().Add(key, value)
 		}
-		writer.WriteHeader(r.statusCode)
+		writer.WriteHeader(r.StatusCode)
 
 		return
 	}
 
-	cType := r.headers["Content-Type"]
+	cType := r.HeaderMap["Content-Type"]
 	pType := categorizeContentType(cType)
-	payload := r.payload
+	payload := r.Body
 	switch pType {
 	case XmlPayload:
 		payload1, err := xml.MarshalIndent(payload, "", "  ")
@@ -89,11 +89,11 @@ func reply(writer http.ResponseWriter, r *Response) {
 			return
 		}
 
-		for key, value := range r.headers {
+		for key, value := range r.HeaderMap {
 			writer.Header().Set(key, value)
 		}
 
-		writer.WriteHeader(r.statusCode)
+		writer.WriteHeader(r.StatusCode)
 		writer.Header().Set("Content-Type", cTypeAppXml)
 		_, err = writer.Write(payload1)
 		return
@@ -104,11 +104,11 @@ func reply(writer http.ResponseWriter, r *Response) {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		for key, value := range r.headers {
+		for key, value := range r.HeaderMap {
 			writer.Header().Set(key, value)
 		}
 		writer.Header().Set("Content-Type", cTypeJson)
-		writer.WriteHeader(r.statusCode)
+		writer.WriteHeader(r.StatusCode)
 		_, err = writer.Write(payload1)
 		return
 	}

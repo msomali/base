@@ -42,14 +42,33 @@ type (
 		Method      string
 		URL         string
 		Endpoint    string
-		PayloadType PayloadType
-		BasicAuth *BasicAuth
+		BasicAuth   *BasicAuth
 		Payload     interface{}
 		Headers     map[string]string
 		QueryParams map[string]string
 	}
 
-	RequestOption func(request *Request)
+	RequestBuilder struct {
+		name        string
+		method      string
+		url         string
+		endpoint    string
+		basicAuth   *BasicAuth
+		payload     interface{}
+		headers     map[string]string
+		queryParams map[string]string
+	}
+
+	requestBuilder interface {
+		Payload(interface{}) *RequestBuilder
+		Headers(map[string]string) *RequestBuilder
+		BasicAuth(auth *BasicAuth) *RequestBuilder
+		QueryParams(params map[string]string) *RequestBuilder
+		Endpoint(endpoint string) *RequestBuilder
+		Build() *Request
+	}
+
+	RequestOption func(request *RequestBuilder)
 
 	RequestInformer interface {
 		fmt.Stringer
@@ -61,66 +80,106 @@ type (
 	}
 )
 
+func (r *RequestBuilder) Payload(i interface{}) *RequestBuilder {
+	r.payload = i
+	return r
+}
+
+func (r *RequestBuilder) Headers(m map[string]string) *RequestBuilder {
+	r.headers = m
+	return r
+}
+
+func (r *RequestBuilder) BasicAuth(auth *BasicAuth) *RequestBuilder {
+	r.basicAuth = auth
+	return r
+}
+
+func (r *RequestBuilder) QueryParams(params map[string]string) *RequestBuilder {
+	r.queryParams = params
+	return r
+}
+
+func (r *RequestBuilder) Endpoint(endpoint string) *RequestBuilder {
+	r.endpoint = endpoint
+	return r
+}
+
+func (r *RequestBuilder) Build() *Request {
+	return &Request{
+		Name:        r.name,
+		Method:      r.method,
+		URL:         r.url,
+		Endpoint:    r.endpoint,
+		BasicAuth:   r.basicAuth,
+		Payload:     r.payload,
+		Headers:     r.headers,
+		QueryParams: r.queryParams,
+	}
+}
+
+func NewRequestBuilder(name,method, basePath string) *RequestBuilder {
+	var defaultRequestHeaders = map[string]string{
+		"Content-Type": cTypeJson,
+	}
+	
+	if method == ""{
+		method = http.MethodGet
+	}
+	rb := &RequestBuilder{
+		name:        name,
+		method:      method,
+		url:         basePath,
+		headers:     defaultRequestHeaders,
+	}
+	
+	return rb
+}
+
+var _ requestBuilder = (*RequestBuilder)(nil)
+
 func MakeInternalRequest(basePath, endpoint string, requestType RequestInformer, payload interface{}, opts ...RequestOption) *Request {
 	url := appendEndpoint(basePath, endpoint)
 	method := requestType.Method()
-	return NewRequest(method, url, payload, opts...)
+	return NewRequest(requestType.String(),method, url, payload, opts...)
 }
 
-func NewRequest(method, url string, payload interface{}, opts ...RequestOption) *Request {
-	var (
-		defaultRequestHeaders = map[string]string{
-			"Content-Type": cTypeJson,
-		}
-	)
+func NewRequest(name,method, url string, payload interface{}, opts ...RequestOption) *Request {
 
-	request := &Request{
-		Method:      method,
-		URL:         url,
-		PayloadType: JsonPayload,
-		Endpoint:    "",
-		Payload:     payload,
-		Headers:     defaultRequestHeaders,
-	}
-
+	rb := NewRequestBuilder(name,method,url)
+	rb.payload = payload
 	for _, opt := range opts {
-		opt(request)
+		opt(rb)
 	}
 
-	return request
+	return rb.Build()
 }
 
 func WithQueryParams(params map[string]string) RequestOption {
-	return func(request *Request) {
-		request.QueryParams = params
+	return func(request *RequestBuilder) {
+		request.queryParams = params
 	}
 }
 
 func WithEndpoint(endpoint string) RequestOption {
-	return func(request *Request) {
-		request.Endpoint = endpoint
+	return func(request *RequestBuilder) {
+		request.endpoint = endpoint
 	}
 }
 
-// WithRequestHeaders replaces all the available headers with new ones
-// WithMoreHeaders appends headers does not replace them
+// WithRequestHeaders replaces all the available HeaderMap with new ones
+// WithMoreHeaders appends HeaderMap does not replace them
 func WithRequestHeaders(headers map[string]string) RequestOption {
-	return func(request *Request) {
-		//get content type and change it to something else
-		cType := headers["Content-Type"]
-		if cType != "" {
-			payloadType := categorizeContentType(cType)
-			request.PayloadType = payloadType
-		}
-		request.Headers = headers
+	return func(request *RequestBuilder) {
+		request.headers = headers
 	}
 }
 
-// WithMoreHeaders appends headers does not replace them like WithRequestHeaders
+// WithMoreHeaders appends HeaderMap does not replace them like WithRequestHeaders
 func WithMoreHeaders(headers map[string]string) RequestOption {
-	return func(request *Request) {
+	return func(request *RequestBuilder) {
 		for key, value := range headers {
-			request.Headers[key] = value
+			request.headers[key] = value
 		}
 	}
 }
@@ -135,10 +194,10 @@ func WithMoreHeaders(headers map[string]string) RequestOption {
 //	return base64.StdEncoding.EncodeToString([]byte(auth))
 //}
 
-// WithBasicAuth add password and username to request headers
+// WithBasicAuth add password and username to request HeaderMap
 func WithBasicAuth(username, password string) RequestOption {
-	return func(request *Request) {
-		request.BasicAuth = &BasicAuth{
+	return func(request *RequestBuilder) {
+		request.basicAuth = &BasicAuth{
 			Username: username,
 			Password: password,
 		}
@@ -175,6 +234,9 @@ func appendEndpoint(url string, endpoint string) string {
 
 // NewRequestWithContext takes a *Request and transform into *http.Request with a context
 func NewRequestWithContext(ctx context.Context, request *Request) (req *http.Request, err error) {
+	
+	cType := request.Headers["Content-Type"]
+	pType := categorizeContentType(cType)
 	requestURL := request.URL
 	requestEndpoint := request.Endpoint
 	if requestEndpoint != "" {
@@ -186,7 +248,7 @@ func NewRequestWithContext(ctx context.Context, request *Request) (req *http.Req
 			return nil, err
 		}
 	} else {
-		buffer, err := MarshalPayload(request.PayloadType, request.Payload)
+		buffer, err := MarshalPayload(pType, request.Payload)
 		if err != nil {
 			return nil, err
 		}
@@ -209,8 +271,8 @@ func NewRequestWithContext(ctx context.Context, request *Request) (req *http.Req
 
 	ba := request.BasicAuth
 
-	if ba != nil{
-		req.SetBasicAuth(ba.Username,ba.Password)
+	if ba != nil {
+		req.SetBasicAuth(ba.Username, ba.Password)
 	}
 
 	return req, nil

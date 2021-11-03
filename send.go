@@ -41,9 +41,10 @@ const errStatusCodeMargin = 400
 
 var DoErr = errors.New("result code is above or equal to 400")
 
-func (client *Client) Do(ctx context.Context, rn string, request *Request, body interface{}) (*Response, error) {
+func (client *Client) Do(ctx context.Context,request *Request, body interface{}) (*Response, error) {
 
 	var (
+		rn = request.Name
 		errDecodingBody  = errors.New("error while decoding response body")
 		errUnknownHeader = errors.New("unknown content-type header")
 	)
@@ -91,7 +92,8 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 
 	response := new(Response)
 	statusCode := res.StatusCode
-	response.statusCode = statusCode
+	response.StatusCode = statusCode
+	response.HTTP = res
 
 	contentType := res.Header.Get("Content-Type")
 	headers := make(map[string]string)
@@ -99,7 +101,7 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 		headers[strings.ToLower(k)] = v[0]
 	}
 
-	response.headers = headers
+	response.HeaderMap = headers
 	cType := categorizeContentType(contentType)
 
 	isJSON := cType == JsonPayload
@@ -115,10 +117,10 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 				return nil, fmt.Errorf("%w: %v", dErr, errDecodingBody)
 			}
 
-			response.payload = body
+			response.Body = body
 
 			if !isOK {
-				response.error = DoErr
+				response.Error = DoErr
 				return response, nil
 			}
 
@@ -132,9 +134,9 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 				return nil, fmt.Errorf("%w: %v", dErr, errDecodingBody)
 			}
 
-			response.payload = body
+			response.Body = body
 			if !isOK {
-				response.error = DoErr
+				response.Error = DoErr
 				return response, nil
 			}
 			return response, nil
@@ -145,7 +147,7 @@ func (client *Client) Do(ctx context.Context, rn string, request *Request, body 
 	}
 
 	if !isOK {
-		response.error = DoErr
+		response.Error = DoErr
 	}
 	return response, nil
 

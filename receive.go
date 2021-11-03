@@ -58,12 +58,12 @@ type (
 	}
 
 	Receipt struct {
-		Request *http.Request
-		BearerToken string
-		BasicAuth   BasicAuth
-		ApiKey      string
+		Request       *http.Request
+		BearerToken   string
+		BasicAuth     BasicAuth
+		ApiKey        string
 		RemoteAddress string
-		ForwardedFor string
+		ForwardedFor  string
 	}
 
 	ReceiveParams struct {
@@ -84,7 +84,7 @@ func NewReceiver(writer stdio.Writer, debug bool) Receiver {
 func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v interface{}) (*Receipt, error) {
 	var (
 		bodyBytes []byte
-		err error
+		err       error
 	)
 
 	receipt := new(Receipt)
@@ -99,7 +99,7 @@ func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v i
 
 	// capture basic auth
 	username, password, ok := r.BasicAuth()
-	if ok{
+	if ok {
 		ba := BasicAuth{
 			Username: username,
 			Password: password,
@@ -115,7 +115,7 @@ func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v i
 	receipt.Request = rClone
 	contentType := r.Header.Get("Content-Type")
 	payloadType := categorizeContentType(contentType)
-	if r.Body != nil{
+	if r.Body != nil {
 		bodyBytes, err = stdio.ReadAll(r.Body)
 	}
 
@@ -255,12 +255,12 @@ func ReceivePayload(r *http.Request, v interface{}) error {
 // logRequest is called to print the details of http.Request received
 func (rc *receiver) logRequest(name string, request *http.Request) {
 
-	rn := strings.ToUpper(fmt.Sprintf("%s request",name))
+	rn := strings.ToUpper(fmt.Sprintf("%s request", name))
 	if request != nil && rc.DebugMode {
 		reqDump, _ := httputil.DumpRequest(request, true)
-		_, err := fmt.Fprintf(rc.Logger, "%s : %s\n",rn, reqDump)
+		_, err := fmt.Fprintf(rc.Logger, "%s : %s\n", rn, reqDump)
 		if err != nil {
-			fmt.Printf("error while logging %s request: %v\n",
+			fmt.Printf("Error while logging %s request: %v\n",
 				strings.ToLower(name), err)
 			return
 		}
