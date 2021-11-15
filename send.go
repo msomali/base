@@ -41,6 +41,11 @@ const errStatusCodeMargin = 400
 
 var DoErr = errors.New("result code is above or equal to 400")
 
+// Do perform http request and return *Response. It takes *Request and body as input. It will inspect
+// the header of the http.Response then determine the Content-Type of the response body. It will then
+// unmarshal the content of the response body to the specified type. Error returned by this function
+// is operation error. In case the response status code is equal or above to 400 and the operations like
+// unmarshalling or reading header have all gone correctly the error will be nil but Response.Error will not.
 func (client *Client) Do(ctx context.Context,request *Request, body interface{}) (*Response, error) {
 
 	var (
@@ -95,6 +100,13 @@ func (client *Client) Do(ctx context.Context,request *Request, body interface{})
 	response.StatusCode = statusCode
 	response.HTTP = res
 
+	//change res.Header to map[string]string
+	header := make(map[string]string)
+	for k, v := range res.Header {
+        header[k] = v[0]
+    }
+	response.HeaderMap = header
+
 	contentType := res.Header.Get("Content-Type")
 	headers := make(map[string]string)
 	for k, v := range res.Header {
@@ -142,6 +154,7 @@ func (client *Client) Do(ctx context.Context,request *Request, body interface{})
 			return response, nil
 
 		} else {
+			//response.Error = errUnknownHeader
 			return nil, errUnknownHeader
 		}
 	}

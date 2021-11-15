@@ -255,10 +255,10 @@ func ReceivePayload(r *http.Request, v interface{}) error {
 // logRequest is called to print the details of http.Request received
 func (rc *receiver) logRequest(name string, request *http.Request) {
 
-	rn := strings.ToUpper(fmt.Sprintf("%s request", name))
+	rn := strings.ToUpper(fmt.Sprintf("%s request (RECEIVED)", name))
 	if request != nil && rc.DebugMode {
 		reqDump, _ := httputil.DumpRequest(request, true)
-		_, err := fmt.Fprintf(rc.Logger, "%s : %s\n", rn, reqDump)
+		_, err := fmt.Fprintf(rc.Logger, "\n\n%s : %s\n\n", rn, reqDump)
 		if err != nil {
 			fmt.Printf("Error while logging %s request: %v\n",
 				strings.ToLower(name), err)

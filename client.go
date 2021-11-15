@@ -78,7 +78,7 @@ func (client *Client) log(name string, request *http.Request) {
 
 	if request != nil {
 		reqDump, _ := httputil.DumpRequest(request, true)
-		_, err := fmt.Fprintf(client.Logger, "%s REQUEST: %s\n", name, reqDump)
+		_, err := fmt.Fprintf(client.Logger, "\n\n%s REQUEST: %s\n\n", name, reqDump)
 		if err != nil {
 			fmt.Printf("error while logging %s request: %v\n",
 				strings.ToLower(name), err)
@@ -95,7 +95,7 @@ func (client *Client) logOut(name string, request *http.Request, response *http.
 
 	if request != nil {
 		reqDump, _ := httputil.DumpRequestOut(request, true)
-		_, err := fmt.Fprintf(client.Logger, "%s REQUEST\n%s\n", name, reqDump)
+		_, err := fmt.Fprintf(client.Logger, "\n\n%s REQUEST (OUTGOING)\n%s\n\n", name, reqDump)
 		if err != nil {
 			fmt.Printf("error while logging %s request: %v\n",
 				strings.ToLower(name), err)
@@ -104,7 +104,7 @@ func (client *Client) logOut(name string, request *http.Request, response *http.
 
 	if response != nil {
 		respDump, _ := httputil.DumpResponse(response, true)
-		_, err := fmt.Fprintf(client.Logger, "%s RESPONSE\n%s\n", name, respDump)
+		_, err := fmt.Fprintf(client.Logger, "\n\n%s RESPONSE\n%s\n\n", name, respDump)
 		if err != nil {
 			fmt.Printf("error while logging %s response: %v\n",
 				strings.ToLower(name), err)
