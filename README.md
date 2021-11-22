@@ -18,3 +18,27 @@ request := NewRequestBuilder("login request", http.MethodPost, "https://google.c
 
 
 ```
+
+## modifiers
+
+```go
+
+RequestModifier func(request *http.Request)
+
+//example
+headerModifier := func(headers map[string]string) RequestModifier {
+		return func(req *http.Request) {
+			for key, value := range headers {
+				req.Header.Set(key, value)
+			}
+		}
+	}
+
+	payloadModifier := func(payload interface{}) RequestModifier {
+		return func(req *http.Request) {
+			pt := categorizeContentType(req.Header.Get("Content-Type"))
+			buf, _ := MarshalPayload(pt, payload)
+			req.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
+		}
+	}
+```
