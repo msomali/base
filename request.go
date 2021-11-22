@@ -82,7 +82,7 @@ type (
 	// RequestModifier is a func that can be injected into NewRequestWithContext
 	// and transform the request before it is sent to server
 	// be carefully using this func, as it can change the request completely
-	RequestModifier func(request *http.Request)
+	RequestModifier func(request *http.Request)error
 )
 
 func (r *RequestBuilder) Payload(i interface{}) *RequestBuilder {
@@ -285,7 +285,10 @@ func NewRequestWithContext(ctx context.Context, request *Request, modifiers ...R
 	}
 
 	for _, modifier := range modifiers {
-		modifier(req)
+		err := modifier(req)
+		if err != nil {
+			return nil, fmt.Errorf("error applying modifier: %w", err)
+		}
 	}
 
 	return req, nil
