@@ -78,6 +78,11 @@ type (
 		MNO() string
 		Group() string
 	}
+
+	// RequestModifier is a func that can be injected into NewRequestWithContext
+	// and transform the request before it is sent to server
+	// be carefully using this func, as it can change the request completely
+	RequestModifier func(request *http.Request)
 )
 
 func (r *RequestBuilder) Payload(i interface{}) *RequestBuilder {
@@ -232,8 +237,12 @@ func appendEndpoint(url string, endpoint string) string {
 	return ""
 }
 
-// NewRequestWithContext takes a *Request and transform into *http.Request with a context
-func NewRequestWithContext(ctx context.Context, request *Request) (req *http.Request, err error) {
+// NewRequestWithContext takes a *Request and transform into *http.Request with a context.Context
+// It takes number of RequestModifier to modify the created *http.Request before it is used
+// the modifiers will be applied in the order they are passed
+// The modifier logic is completely up to the implementor of the modifier, so care should be taken
+// to not modify the request in a way that it will break the sending logic.
+func NewRequestWithContext(ctx context.Context, request *Request,modifiers...RequestModifier ) (req *http.Request, err error) {
 	
 	cType := request.Headers["Content-Type"]
 	pType := categorizeContentType(cType)
@@ -273,6 +282,10 @@ func NewRequestWithContext(ctx context.Context, request *Request) (req *http.Req
 
 	if ba != nil {
 		req.SetBasicAuth(ba.Username, ba.Password)
+	}
+
+	for _, modifier := range modifiers {
+		modifier(req)
 	}
 
 	return req, nil
