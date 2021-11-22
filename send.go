@@ -46,7 +46,7 @@ var DoErr = errors.New("result code is above or equal to 400")
 // unmarshal the content of the response body to the specified type. Error returned by this function
 // is operation error. In case the response status code is equal or above to 400 and the operations like
 // unmarshalling or reading header have all gone correctly the error will be nil but Response.Error will not.
-func (client *Client) Do(ctx context.Context,request *Request, body interface{}) (*Response, error) {
+func (client *Client) Do(ctx context.Context,request *Request, body interface{}, modifiers...RequestModifier) (*Response, error) {
 
 	var (
 		rn = request.Name
@@ -74,7 +74,7 @@ func (client *Client) Do(ctx context.Context,request *Request, body interface{})
 			client.logOut(strings.ToUpper(rn), req, res)
 		}
 	}(client.DebugMode)
-	req, err := NewRequestWithContext(ctx, request)
+	req, err := NewRequestWithContext(ctx, request,modifiers...)
 
 	if err != nil {
 		return nil, err
