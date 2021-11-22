@@ -123,21 +123,21 @@ func (r *RequestBuilder) Build() *Request {
 	}
 }
 
-func NewRequestBuilder(name,method, basePath string) *RequestBuilder {
+func NewRequestBuilder(name, method, basePath string) *RequestBuilder {
 	var defaultRequestHeaders = map[string]string{
 		"Content-Type": cTypeJson,
 	}
-	
-	if method == ""{
+
+	if method == "" {
 		method = http.MethodGet
 	}
 	rb := &RequestBuilder{
-		name:        name,
-		method:      method,
-		url:         basePath,
-		headers:     defaultRequestHeaders,
+		name:    name,
+		method:  method,
+		url:     basePath,
+		headers: defaultRequestHeaders,
 	}
-	
+
 	return rb
 }
 
@@ -146,12 +146,12 @@ var _ requestBuilder = (*RequestBuilder)(nil)
 func MakeInternalRequest(basePath, endpoint string, requestType RequestInformer, payload interface{}, opts ...RequestOption) *Request {
 	url := appendEndpoint(basePath, endpoint)
 	method := requestType.Method()
-	return NewRequest(requestType.String(),method, url, payload, opts...)
+	return NewRequest(requestType.String(), method, url, payload, opts...)
 }
 
-func NewRequest(name,method, url string, payload interface{}, opts ...RequestOption) *Request {
+func NewRequest(name, method, url string, payload interface{}, opts ...RequestOption) *Request {
 
-	rb := NewRequestBuilder(name,method,url)
+	rb := NewRequestBuilder(name, method, url)
 	rb.payload = payload
 	for _, opt := range opts {
 		opt(rb)
@@ -242,8 +242,8 @@ func appendEndpoint(url string, endpoint string) string {
 // the modifiers will be applied in the order they are passed
 // The modifier logic is completely up to the implementor of the modifier, so care should be taken
 // to not modify the request in a way that it will break the sending logic.
-func NewRequestWithContext(ctx context.Context, request *Request,modifiers...RequestModifier ) (req *http.Request, err error) {
-	
+func NewRequestWithContext(ctx context.Context, request *Request, modifiers ...RequestModifier) (req *http.Request, err error) {
+
 	cType := request.Headers["Content-Type"]
 	pType := categorizeContentType(cType)
 	requestURL := request.URL
