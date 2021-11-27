@@ -7,32 +7,43 @@ import (
 	"strings"
 )
 
-const (
-	TigoName               = "Tigo"
-	VodacomName            = "Vodacom"
-	TTCLName               = "TTCL"
-	AirtelName             = "Airtel"
-	ZantelName             = "Zantel"
-	SmileCommonName    = "Smile"
-	MoCommonName       = "Mo Mobile"
-	HalotelName            = "Halotel"
-	MkulimaCommonName  = "Mkulima"
-	WiAfricaCommonName = "Wiafrica"
+var _ operator = (*Operator)(nil)
 
+const (
+	Tigo Operator = iota
+	Vodacom
+	TTCL
+	Airtel
+	Zantel
+	Smile
+	MoMobile
+	Halotel
+	Mkulima
+	WiAfrica
 )
 
 const (
-	Tigo              Operator = "Tigo"
-	Vodacom           Operator = "Vodacom"
-	TTCL              Operator = "TTCL"
-	Airtel            Operator = "Airtel"
-	Zantel            Operator = "Zantel"
-	Smile             Operator = "Smile"
-	Mo                Operator = "Mo Mobile"
-	Halotel           Operator = "Halotel"
-	Mkulima           Operator = "Mkulima"
-	WiAfrica          Operator = "Wiafrica"
-	statusOperational          = "Operational"
+	registeredTigoName     = "MIC Tanzania PLC"
+	registeredVodacomName  = "Vodacom Tanzania PLC"
+	registeredTTCLName     = "Tanzania Telecommunications Corporation"
+	registeredAirtelName   = "Airtel Tanzania PLC"
+	registeredZantelName   = "Zanzibar Telecom PLC"
+	registeredSmileName    = "Smile Communications Tanzania Limited"
+	registeredMoMobileName = "MO Mobile Holding Limited"
+	registeredHalotelName  = "Viettel Tanzania PLC"
+	registeredMkulimaName  = "Mkulima African Telecommunication Company Limited"
+	registeredWiAfricaName = "Wiafrica Tanzania Limited"
+	commonTigoName         = "Tigo"
+	commonVodacomName      = "Vodacom"
+	commonTTCLName         = "TTCL"
+	commonAirtelName       = "Airtel"
+	commonZantelName       = "Zantel"
+	commonSmileName        = "Smile"
+	commonMoName           = "Mo Mobile"
+	commonHalotelName      = "Halotel"
+	commonMkulimaName      = "Mkulima"
+	commonWiAfricaName     = "Wiafrica"
+	StatusOperational      = "Operational"
 )
 
 var (
@@ -43,103 +54,132 @@ var (
 	tigoPrefixes     = []string{"071", "065", "067"}
 	vodaPrefixes     = []string{"074", "075", "076"}
 	ttclPrefixes     = []string{"073"}
-	zantelPrefixes   = []string{"077"}
 	airtelPrefixes   = []string{"078", "068", "069"}
+	zantelPrefixes   = []string{"077"}
 	smilePrefixes    = []string{"066"}
+	moPrefixes       = []string{"072"}
 	viettelPrefixes  = []string{"061", "062"}
 	mkulimaPrefixes  = []string{"063"}
 	wiAfricaPrefixes = []string{"064"}
-	moPrefixes       = []string{"072"}
 
-	repository = []Data{
-
-		{
-			Operator:   "MIC Tanzania PLC",
-			Status:     statusOperational,
-			Prefixes:   tigoPrefixes,
-			CommonName: TigoName,
-		},
-		{
-			Operator:   "Vodacom Tanzania PLC",
-			CommonName: VodacomName,
-			Status:     statusOperational,
-			Prefixes:   vodaPrefixes,
-		},
-		{
-			Operator:   "Tanzania Telecommunications Corporation",
-			CommonName: TTCLName,
-			Status:     statusOperational,
-			Prefixes:   ttclPrefixes,
-		},
-		{
-			Operator:   "Zanzibar Telecom PLC",
-			CommonName: ZantelName,
-			Status:     statusOperational,
-			Prefixes:   zantelPrefixes,
-		},
-		{
-			Operator:   "Airtel Tanzania PLC",
-			CommonName: AirtelName,
-			Status:     statusOperational,
-			Prefixes:   airtelPrefixes,
-		},
-		{
-			Operator:   "Smile Communications Tanzania Limited",
-			CommonName: SmileCommonName,
-			Status:     statusOperational,
-			Prefixes:   smilePrefixes,
-		},
-		{
-			Operator:   "Viettel Tanzania PLC",
-			CommonName: HalotelName,
-			Status:     statusOperational,
-			Prefixes:   viettelPrefixes,
-		},
-		{
-			Operator:   "Mkulima African Telecommunication Company Limited",
-			CommonName: MkulimaCommonName,
-			Status:     statusOperational,
-			Prefixes:   mkulimaPrefixes,
-		},
-		{
-			Operator:   "Wiafrica Tanzania Limited",
-			CommonName: WiAfricaCommonName,
-			Status:     statusOperational,
-			Prefixes:   wiAfricaPrefixes,
-		},
-		{
-			Operator:   "MO Mobile Holding Limited",
-			CommonName: MoCommonName,
-			Status:     statusOperational,
-			Prefixes:   moPrefixes,
-		},
-	}
 )
 
 type (
-	Operator string
+	Operator int8
 
-	// Data contains basic details of a phone number include the mno
-	Data struct {
-		Operator   Operator `json:"operator"`
-		CommonName string   `json:"name"`
-		Status     string   `json:"status"`
-		Prefixes   []string `json:"prefixes"`
+	// Info contains basic details of a phone number include the mno
+	Info struct {
+		Operator        Operator `json:"operator"`
+		FormattedNumber string   `json:"formatted_number"`
 	}
 
-	Prefixes []string
+	FilterOperatorFunc func(op Operator) bool
+	FilterPhoneFunc    func(phone string) bool
+
+	operator interface {
+		fmt.Stringer
+		Prefixes() []string
+		RegisteredName() string
+		CommonName() string
+		Status() string
+	}
 )
 
-func (op Operator)String()string{
-	return string(op)
+func (op Operator) Prefixes() []string {
+	prefixes := [][]string{
+		tigoPrefixes,
+		vodaPrefixes,
+		ttclPrefixes,
+		zantelPrefixes,
+		airtelPrefixes,
+		smilePrefixes,
+		moPrefixes,
+		viettelPrefixes,
+		mkulimaPrefixes,
+		wiAfricaPrefixes,
+	}
+
+	return prefixes[op]
 }
 
-// Format return a phone number starting with 255 or error
+func (op Operator) RegisteredName() string {
+	registeredNames := []string{
+        registeredTigoName,
+        registeredVodacomName,
+        registeredTTCLName,
+        registeredZantelName,
+        registeredAirtelName,
+        registeredSmileName,
+        registeredMoMobileName,
+        registeredHalotelName,
+        registeredMkulimaName,
+        registeredWiAfricaName,
+    }
+
+	return registeredNames[op]
+}
+
+func (op Operator) CommonName() string {
+	commonNames := []string{
+        commonTigoName,
+        commonVodacomName,
+        commonTTCLName,
+        commonZantelName,
+        commonAirtelName,
+        commonSmileName,
+        commonMoName,
+        commonHalotelName,
+        commonMkulimaName,
+        commonWiAfricaName,
+    }
+    return commonNames[op]
+}
+
+func (op Operator) Status() string {
+	return StatusOperational
+}
+
+func (op Operator) String() string {
+	return fmt.Sprintf("registered name: %s, common name :%s, status: %s, prefixes :%v\n",
+		op.RegisteredName(),op.CommonName(),op.Status(),op.Prefixes())
+}
+
+func FilterByPrefix(prefix string) FilterPhoneFunc {
+	return func(phone string) bool {
+		return strings.HasPrefix(phone, prefix)
+	}
+}
+
+func FilterBySubstring(substr string) FilterPhoneFunc {
+	return func(phone string) bool {
+		return strings.Contains(phone, substr)
+	}
+}
+
+func FilterBySuffix(suffix string) FilterPhoneFunc {
+	return func(phone string) bool {
+		return strings.HasSuffix(phone, suffix)
+	}
+}
+
+func OperatorsListFilter(ops ...Operator) FilterOperatorFunc {
+	return func(op Operator) bool {
+		for _, operator := range ops {
+			if op == operator {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+// format return a phone number starting with 255 or error
 // if it can not be formatted.
 // It tries it best to remove white spaces or hyphens put in between
 // numbers and a plus sign at the beginning then replace 0 with 255
 // if need be
-func Format(phoneNumber string) (string, error) {
+func format(phoneNumber string) (string, error) {
 	phoneNumber = strings.TrimSpace(phoneNumber)
 	replacer := strings.NewReplacer(" ", "", "-", "", "+", "")
 	phoneNumber = replacer.Replace(phoneNumber)
@@ -172,19 +212,7 @@ func Format(phoneNumber string) (string, error) {
 	return "", fmt.Errorf("pass the correct format")
 }
 
-// Details returns Data or err if the phone number inserted is not
-// correct. after trying to sanitize it
-func Details(phone string) (Data, error) {
-	//sanitize
-	prefix, err := sanitize(phone)
-	if err != nil {
-		return Data{}, err
-	}
-
-	return findUsingPrefix(prefix)
-}
-
-func mergePrefixes() map[string]Operator{
+func mergePrefixes() map[string]Operator {
 	var m map[string]Operator
 	m = make(map[string]Operator)
 	for _, prefix := range tigoPrefixes {
@@ -216,7 +244,7 @@ func mergePrefixes() map[string]Operator{
 	}
 
 	for _, prefix := range moPrefixes {
-		m[prefix] = Mo
+		m[prefix] = MoMobile
 	}
 
 	for _, prefix := range viettelPrefixes {
@@ -276,22 +304,73 @@ func sanitize(phoneNumber string) (string, error) {
 
 }
 
-func findUsingPrefix(prefix string) (response Data, err error) {
+func findUsingPrefix(prefix string) (op Operator, err error) {
 
 	m := mergePrefixes()
-	operator := m[prefix]
-	var found bool
 
-	for _, data := range repository {
-		if data.CommonName == operator.String() {
-			found = true
-			response = data
-		}
+	op, ok := m[prefix]
+
+	if !ok {
+        return -1, ErrOperatorNotFound
+    }
+
+	return op, nil
+
+}
+
+func Get(phoneNumber string)(Operator,error){
+
+    prefix, err := sanitize(phoneNumber)
+    if err != nil {
+        return -1, err
+    }
+
+    op, err := findUsingPrefix(prefix)
+    if err != nil {
+        return -1, err
+    }
+
+    return op, nil
+
+}
+
+func GetThenFilter(phoneNumber string,
+	f FilterOperatorFunc, f2 FilterPhoneFunc)(Operator,error){
+	s, err := format(phoneNumber)
+	if err != nil {
+		return -1, err
+	}
+	passFilter2 := f2(s)
+	if !passFilter2 {
+        return -1, fmt.Errorf("could not pass filter")
+    }
+
+	op, err := Get(s)
+
+	passFilter1 := f(op)
+
+	if !passFilter1 {
+		return -1, fmt.Errorf("could not pass filter")
 	}
 
-	if found {
-		return response, nil
-	} else {
-		return Data{}, ErrOperatorNotFound
+	return op,nil
+}
+
+func Information(phoneNumber string)(*Info,error){
+    fmtNumber, err := format(phoneNumber)
+	if err != nil{
+		return nil,err
 	}
+    op, err := Get(phoneNumber)
+    if err != nil {
+        return nil, err
+    }
+
+	info := &Info{
+		Operator:        op,
+		FormattedNumber: fmtNumber,
+	}
+
+    return info, nil
+
 }
