@@ -1,6 +1,40 @@
 package mna
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
+
+func FilterByPrefix(prefix string) FilterPhoneFunc {
+	return func(phone string) bool {
+		return strings.HasPrefix(phone, prefix)
+	}
+}
+
+func FilterBySubstring(substr string) FilterPhoneFunc {
+	return func(phone string) bool {
+		return strings.Contains(phone, substr)
+	}
+}
+
+func FilterBySuffix(suffix string) FilterPhoneFunc {
+	return func(phone string) bool {
+		return strings.HasSuffix(phone, suffix)
+	}
+}
+
+func OperatorsListFilter(ops ...Operator) FilterOperatorFunc {
+	return func(op Operator) bool {
+		for _, operator := range ops {
+			if op == operator {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
 
 func TestGet(t *testing.T) {
 	type args struct {
@@ -46,8 +80,8 @@ func TestGet(t *testing.T) {
 func TestGetThenFilter(t *testing.T) {
 	type args struct {
 		phoneNumber string
-		f           FilterOperatorFunc
-		f2          FilterPhoneFunc
+		f2           FilterOperatorFunc
+		f1          FilterPhoneFunc
 	}
 	tests := []struct {
 		name    string
@@ -59,22 +93,22 @@ func TestGetThenFilter(t *testing.T) {
 			name:    "test filter with suffix and pass tigo and vodacom numbers only",
 			args:    args{
 				phoneNumber: "0712915799",
-				f:           OperatorsListFilter(Tigo, Vodacom),
-				f2:          FilterBySuffix("799"),
+				f2:           OperatorsListFilter(Tigo, Vodacom),
+				f1:          FilterBySuffix("799"),
 			},
-			want:    Tigo | Vodacom,
+			want:    Tigo,
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetThenFilter(tt.args.phoneNumber, tt.args.f, tt.args.f2)
+			got, err := GetAndFilter(tt.args.phoneNumber, tt.args.f1, tt.args.f2)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GetThenFilter() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetAndFilter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("GetThenFilter() got = %v, want %v", got, tt.want)
+				t.Errorf("GetAndFilter() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

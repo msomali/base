@@ -144,35 +144,6 @@ func (op Operator) String() string {
 		op.RegisteredName(),op.CommonName(),op.Status(),op.Prefixes())
 }
 
-func FilterByPrefix(prefix string) FilterPhoneFunc {
-	return func(phone string) bool {
-		return strings.HasPrefix(phone, prefix)
-	}
-}
-
-func FilterBySubstring(substr string) FilterPhoneFunc {
-	return func(phone string) bool {
-		return strings.Contains(phone, substr)
-	}
-}
-
-func FilterBySuffix(suffix string) FilterPhoneFunc {
-	return func(phone string) bool {
-		return strings.HasSuffix(phone, suffix)
-	}
-}
-
-func OperatorsListFilter(ops ...Operator) FilterOperatorFunc {
-	return func(op Operator) bool {
-		for _, operator := range ops {
-			if op == operator {
-				return true
-			}
-		}
-
-		return false
-	}
-}
 
 // format return a phone number starting with 255 or error
 // if it can not be formatted.
@@ -334,29 +305,40 @@ func Get(phoneNumber string)(Operator,error){
 
 }
 
-func GetThenFilter(phoneNumber string,
-	f FilterOperatorFunc, f2 FilterPhoneFunc)(Operator,error){
+func GetAndFilter(phoneNumber string, f1 FilterPhoneFunc, f2 FilterOperatorFunc)(Operator,error){
+
+	var (
+		passFilterOne bool
+		passFilterTwo bool
+	)
+
 	s, err := format(phoneNumber)
 	if err != nil {
 		return -1, err
 	}
-	passFilter2 := f2(s)
-	if !passFilter2 {
-        return -1, fmt.Errorf("could not pass filter")
+
+	if f1 != nil {
+        passFilterOne = f1(s)
+		if !passFilterOne{
+			return -1, errors.New("could not pass set filters")
+		}
     }
-
 	op, err := Get(s)
-
-	passFilter1 := f(op)
-
-	if !passFilter1 {
-		return -1, fmt.Errorf("could not pass filter")
+	if err != nil{
+		return -1, err
+	}
+	if f2 != nil{
+		passFilterTwo = f2(op)
+		if !passFilterTwo{
+			return -1, errors.New("could not pass set filters")
+		}
 	}
 
 	return op,nil
 }
 
 func Information(phoneNumber string)(*Info,error){
+
     fmtNumber, err := format(phoneNumber)
 	if err != nil{
 		return nil,err
@@ -366,6 +348,7 @@ func Information(phoneNumber string)(*Info,error){
         return nil, err
     }
 
+
 	info := &Info{
 		Operator:        op,
 		FormattedNumber: fmtNumber,
@@ -373,4 +356,40 @@ func Information(phoneNumber string)(*Info,error){
 
     return info, nil
 
+}
+
+func InfoAfterFilters(phoneNumber string, f1 FilterPhoneFunc, f2 FilterOperatorFunc)(*Info,error){
+
+	var (
+		passFilterOne bool
+		passFilterTwo bool
+	)
+	fmtNumber, err := format(phoneNumber)
+	if err != nil{
+		return nil,err
+	}
+
+	if f1 != nil {
+		passFilterOne = f1(fmtNumber)
+		if !passFilterOne{
+			return nil, errors.New("could not pass set filters")
+		}
+	}
+	op, err := Get(fmtNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	if f2 != nil{
+		passFilterTwo = f2(op)
+		if !passFilterTwo{
+			return nil, errors.New("could not pass set filters")
+		}
+	}
+	info := &Info{
+		Operator:        op,
+		FormattedNumber: fmtNumber,
+	}
+
+	return info, nil
 }
