@@ -74,7 +74,10 @@ type (
 		fmt.Stringer
 		Endpoint() string
 		Method() string
+		// Name returns the name of the request
 		Name() string
+
+		// MNO returns the name of the mno
 		MNO() string
 		Group() string
 	}

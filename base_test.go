@@ -23,7 +23,7 @@ func Test_BuildRequest(t *testing.T) {
 	rv := NewReceiver(os.Stderr, true)
 
 	user := struct {
-		XMLName xml.Name `xml:"user"`
+		XMLName xml.Name `xml:"user" json:"-"`
 		Name    string   `json:"name" xml:"name"`
 		Age     int64    `json:"age" xml:"age"`
 	}{
@@ -32,7 +32,7 @@ func Test_BuildRequest(t *testing.T) {
 	}
 
 	user1 := struct {
-		XMLName xml.Name `xml:"user"`
+		XMLName xml.Name `xml:"user" json:"-"`
 		Name    string   `json:"name" xml:"name"`
 		Age     int64    `json:"age" xml:"age"`
 		Email   string   `json:"email" xml:"email"`

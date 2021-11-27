@@ -31,7 +31,7 @@ const (
 	JsonPayload PayloadType = iota
 	XmlPayload
 	FormPayload
-	TextXml
+	TextXmlPayload
 	UnsupportedPayload
 )
 
@@ -62,7 +62,7 @@ func (p PayloadType) String() string {
 func categorizeContentType(headerStr string) PayloadType {
 	j := JsonPayload.String()
 	x := XmlPayload.String()
-	xml2 := TextXml.String()
+	xml2 := TextXmlPayload.String()
 	form := FormPayload.String()
 	if strings.Contains(headerStr, j) {
 		return JsonPayload

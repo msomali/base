@@ -34,6 +34,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -43,6 +44,7 @@ const (
 
 type (
 	Client struct {
+		mu sync.Mutex
 		Http      *http.Client
 		Logger    stdio.Writer // for logging purposes
 		DebugMode bool
@@ -52,11 +54,28 @@ type (
 	ClientOption func(client *Client)
 )
 
+//SetLogger set logger for client
+func (c *Client)SetLogger(writer stdio.Writer)  {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if writer != nil {
+        c.Logger = writer
+    }
+}
+
+//SetDebugMode set debug mode for client
+func (c *Client)SetDebugMode(debugMode bool)  {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    c.DebugMode = debugMode
+}
+
 func NewClient(opts ...ClientOption) *Client {
 	defClient := &http.Client{
 		Timeout: defaultTimeout,
 	}
 	client := &Client{
+		mu: sync.Mutex{},
 		Http:      defClient,
 		Logger:    io.Stderr,
 		DebugMode: true,
@@ -69,16 +88,16 @@ func NewClient(opts ...ClientOption) *Client {
 	return client
 }
 
-func (client *Client) logPayload(t PayloadType, prefix string, payload interface{}) {
+func (c *Client) logPayload(t PayloadType, prefix string, payload interface{}) {
 	buf, _ := MarshalPayload(t, payload)
-	_, _ = client.Logger.Write([]byte(fmt.Sprintf("%s: %s\n\n", prefix, buf.String())))
+	_, _ = c.Logger.Write([]byte(fmt.Sprintf("%s: %s\n\n", prefix, buf.String())))
 }
 
-func (client *Client) log(name string, request *http.Request) {
+func (c *Client) log(name string, request *http.Request) {
 
 	if request != nil {
 		reqDump, _ := httputil.DumpRequest(request, true)
-		_, err := fmt.Fprintf(client.Logger, "\n\n%s REQUEST: %s\n\n", name, reqDump)
+		_, err := fmt.Fprintf(c.Logger, "\n\n%s REQUEST: %s\n\n", name, reqDump)
 		if err != nil {
 			fmt.Printf("error while logging %s request: %v\n",
 				strings.ToLower(name), err)
@@ -91,11 +110,11 @@ func (client *Client) log(name string, request *http.Request) {
 
 // logOut is like log except this is for outgoing client requests:
 // http.Request that is supposed to be sent to tigo
-func (client *Client) logOut(name string, request *http.Request, response *http.Response) {
+func (c *Client) logOut(name string, request *http.Request, response *http.Response) {
 
 	if request != nil {
 		reqDump, _ := httputil.DumpRequestOut(request, true)
-		_, err := fmt.Fprintf(client.Logger, "\n\n%s REQUEST (OUTGOING)\n%s\n\n", name, reqDump)
+		_, err := fmt.Fprintf(c.Logger, "\n\n%s REQUEST (OUTGOING)\n%s\n\n", name, reqDump)
 		if err != nil {
 			fmt.Printf("error while logging %s request: %v\n",
 				strings.ToLower(name), err)
@@ -104,7 +123,7 @@ func (client *Client) logOut(name string, request *http.Request, response *http.
 
 	if response != nil {
 		respDump, _ := httputil.DumpResponse(response, true)
-		_, err := fmt.Fprintf(client.Logger, "\n\n%s RESPONSE\n%s\n\n", name, respDump)
+		_, err := fmt.Fprintf(c.Logger, "\n\n%s RESPONSE\n%s\n\n", name, respDump)
 		if err != nil {
 			fmt.Printf("error while logging %s response: %v\n",
 				strings.ToLower(name), err)

@@ -31,11 +31,11 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/techcraftlabs/base/io"
 	stdio "io"
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"sync"
 )
 
 var (
@@ -44,12 +44,13 @@ var (
 
 type (
 	receiver struct {
+		mu sync.Mutex
 		Logger    stdio.Writer
 		DebugMode bool
 	}
 
 	Receiver interface {
-		Receive(ctx context.Context, rn string, r *http.Request, v interface{}) (*Receipt, error)
+		Receive(ctx context.Context, rn string, r *http.Request, v interface{},opts...OptionFunc) (*Receipt, error)
 	}
 
 	BasicAuth struct {
@@ -65,23 +66,38 @@ type (
 		RemoteAddress string
 		ForwardedFor  string
 	}
-
-	ReceiveParams struct {
-		DebugMode bool
-		Logger    stdio.Writer
-	}
-
-	ReceiveOption func(params *ReceiveParams)
 )
 
 func NewReceiver(writer stdio.Writer, debug bool) Receiver {
 	return &receiver{
+		mu: sync.Mutex{},
 		Logger:    writer,
 		DebugMode: debug,
 	}
 }
 
-func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v interface{}) (*Receipt, error) {
+func (rc *receiver)update(params *Params) {
+    rc.mu.Lock()
+    defer rc.mu.Unlock()
+	if params != nil {
+		rc.Logger = params.Logger
+		rc.DebugMode = params.DebugMode
+	}
+}
+
+func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v interface{},opts...OptionFunc) (*Receipt, error) {
+	params := &Params{
+        DebugMode: rc.DebugMode,
+        Logger:    rc.Logger,
+    }
+
+	for _, opt := range opts {
+		opt(params)
+	}
+
+	// update receiver in case the options changed
+	rc.update(params)
+
 	var (
 		bodyBytes []byte
 		err       error
@@ -156,102 +172,6 @@ func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v i
 	return receipt, err
 }
 
-func ReceiveDebugMode(mode bool) ReceiveOption {
-	return func(params *ReceiveParams) {
-		params.DebugMode = mode
-	}
-}
-
-func ReceiveLogger(writer stdio.Writer) ReceiveOption {
-	return func(params *ReceiveParams) {
-		params.Logger = writer
-	}
-}
-
-// ReceivePayloadWithParams takes *http.Request from clients like during then unmarshal the provided
-// request into given interface v
-// The expected Content-Type should also be declared. If its cTypeJson or
-// application/xml
-func ReceivePayloadWithParams(r *http.Request, v interface{}, opts ...ReceiveOption) error {
-
-	rp := &ReceiveParams{
-		DebugMode: true,
-		Logger:    io.Stderr,
-	}
-
-	for _, opt := range opts {
-		opt(rp)
-	}
-	contentType := r.Header.Get("Content-Type")
-	payloadType := categorizeContentType(contentType)
-	body, err := stdio.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	if v == nil {
-		return fmt.Errorf("v can not be nil")
-	}
-	// restore request body
-	r.Body = stdio.NopCloser(bytes.NewBuffer(body))
-
-	switch payloadType {
-	case JsonPayload:
-		err := json.NewDecoder(r.Body).Decode(v)
-		defer func(Body stdio.ReadCloser) {
-			err := Body.Close()
-			if err != nil {
-				return
-			}
-		}(r.Body)
-		r.Body = stdio.NopCloser(bytes.NewBuffer(body))
-		return err
-
-	case XmlPayload:
-		r.Body = stdio.NopCloser(bytes.NewBuffer(body))
-		return xml.Unmarshal(body, v)
-	}
-
-	return err
-}
-
-// ReceivePayload takes *http.Request from clients like during then unmarshal the provided
-// request into given interface v
-// The expected Content-Type should also be declared. If its cTypeJson or
-// application/xml
-func ReceivePayload(r *http.Request, v interface{}) error {
-
-	contentType := r.Header.Get("Content-Type")
-	payloadType := categorizeContentType(contentType)
-	body, err := stdio.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-	if v == nil {
-		return fmt.Errorf("v can not be nil")
-	}
-	// restore request body
-	r.Body = stdio.NopCloser(bytes.NewBuffer(body))
-
-	switch payloadType {
-	case JsonPayload:
-		err := json.NewDecoder(r.Body).Decode(v)
-		defer func(Body stdio.ReadCloser) {
-			err := Body.Close()
-			if err != nil {
-				return
-			}
-		}(r.Body)
-		r.Body = stdio.NopCloser(bytes.NewBuffer(body))
-		return err
-
-	case XmlPayload:
-		r.Body = stdio.NopCloser(bytes.NewBuffer(body))
-		return xml.Unmarshal(body, v)
-	}
-
-	return err
-}
-
 // logRequest is called to print the details of http.Request received
 func (rc *receiver) logRequest(name string, request *http.Request) {
 
@@ -268,3 +188,5 @@ func (rc *receiver) logRequest(name string, request *http.Request) {
 	}
 	return
 }
+
+

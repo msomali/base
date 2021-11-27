@@ -30,6 +30,7 @@ import (
 	"encoding/xml"
 	"io"
 	"net/http"
+	"sync"
 )
 
 var (
@@ -38,15 +39,37 @@ var (
 
 type (
 	replier struct {
+		mu sync.Mutex
 		Logger    io.Writer
 		DebugMode bool
 	}
 	Replier interface {
-		Reply(writer http.ResponseWriter, r *Response)
+		Reply(writer http.ResponseWriter, r *Response,opts...OptionFunc)
 	}
+
 )
 
-func (rp *replier) Reply(writer http.ResponseWriter, response *Response) {
+
+func (rp *replier)update(params *Params){
+	rp.mu.Lock()
+	defer rp.mu.Unlock()
+	if params != nil {
+        rp.DebugMode = params.DebugMode
+        rp.Logger = params.Logger
+    }
+}
+
+func (rp *replier) Reply(writer http.ResponseWriter, response *Response,opts...OptionFunc) {
+	params := &Params{
+		DebugMode: rp.DebugMode,
+		Logger:   rp.Logger,
+	}
+	for _, opt := range opts {
+		opt(params)
+	}
+
+	rp.update(params)
+
 	responseFmt, err := responseFormat(response)
 	if err != nil {
 		return
@@ -62,6 +85,7 @@ func (rp *replier) Reply(writer http.ResponseWriter, response *Response) {
 
 func NewReplier(writer io.Writer, debug bool) Replier {
 	return &replier{
+		mu: sync.Mutex{},
 		Logger:    writer,
 		DebugMode: debug,
 	}

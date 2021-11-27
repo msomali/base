@@ -53,7 +53,7 @@ func MarshalPayload(payloadType PayloadType, payload interface{}) (buffer *bytes
 		buffer = bytes.NewBuffer(buf)
 
 		return buffer, nil
-	case XmlPayload, TextXml:
+	case XmlPayload, TextXmlPayload:
 		buf, err := xml.MarshalIndent(payload, "", "  ")
 		if err != nil {
 			return nil, err

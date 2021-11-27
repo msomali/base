@@ -42,3 +42,44 @@ headerModifier := func(headers map[string]string) RequestModifier {
 		}
 	}
 ```
+
+## receivers and repliers
+```go
+
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/techcraftlabs/base"
+	baseio "github.com/techcraftlabs/base/io"
+	"net/http"
+	"os"
+)
+
+type User struct {
+	Name string 	`json:"name"`
+}
+
+func main() {
+	
+	rv := base.NewReceiver(os.Stderr, false)
+	u := new(User)
+	
+	debug := base.DebugModeOption(false)
+	logger := base.LoggerOption(baseio.Stderr)
+
+	receipt, err := rv.Receive(context.TODO(),"",new(http.Request),u,debug,logger)
+	if err != nil {
+		return 
+	}
+	
+	fmt.Printf("%+v\n",receipt)
+	
+	replier := base.NewReplier(os.Stderr,false)
+	
+
+}
+
+
+```
