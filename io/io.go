@@ -43,7 +43,7 @@ func (w writefd) Write(buf []byte) (int, error) {
 }
 
 const (
-	Stdin  = readfd(0)
-	Stdout = writefd(1)
-	Stderr = writefd(2)
+	StdIn  = readfd(0)
+	StdOut = writefd(1)
+	StdErr = writefd(2)
 )

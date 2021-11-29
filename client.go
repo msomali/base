@@ -77,7 +77,7 @@ func NewClient(opts ...ClientOption) *Client {
 	client := &Client{
 		mu: sync.Mutex{},
 		Http:      defClient,
-		Logger:    io.Stderr,
+		Logger:    io.StdErr,
 		DebugMode: true,
 	}
 
