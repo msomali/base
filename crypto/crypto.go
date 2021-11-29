@@ -8,7 +8,6 @@ import (
 	"fmt"
 )
 
-
 // PinEncryptionRSA encrypts the pin with the public key
 // returns a base64 encoded string of the encrypted pin
 func PinEncryptionRSA(pin string, pubKey string) (string, error) {
@@ -37,4 +36,3 @@ func PinEncryptionRSA(pin string, pubKey string) (string, error) {
 	return base64.StdEncoding.EncodeToString(encrypted), nil
 
 }
-

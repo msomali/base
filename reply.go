@@ -39,30 +39,28 @@ var (
 
 type (
 	replier struct {
-		mu sync.Mutex
+		mu        sync.Mutex
 		Logger    io.Writer
 		DebugMode bool
 	}
 	Replier interface {
-		Reply(writer http.ResponseWriter, r *Response,opts...OptionFunc)
+		Reply(writer http.ResponseWriter, r *Response, opts ...OptionFunc)
 	}
-
 )
 
-
-func (rp *replier)update(params *Params){
+func (rp *replier) update(params *Params) {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
 	if params != nil {
-        rp.DebugMode = params.DebugMode
-        rp.Logger = params.Logger
-    }
+		rp.DebugMode = params.DebugMode
+		rp.Logger = params.Logger
+	}
 }
 
-func (rp *replier) Reply(writer http.ResponseWriter, response *Response,opts...OptionFunc) {
+func (rp *replier) Reply(writer http.ResponseWriter, response *Response, opts ...OptionFunc) {
 	params := &Params{
 		DebugMode: rp.DebugMode,
-		Logger:   rp.Logger,
+		Logger:    rp.Logger,
 	}
 	for _, opt := range opts {
 		opt(params)
@@ -85,7 +83,7 @@ func (rp *replier) Reply(writer http.ResponseWriter, response *Response,opts...O
 
 func NewReplier(writer io.Writer, debug bool) Replier {
 	return &replier{
-		mu: sync.Mutex{},
+		mu:        sync.Mutex{},
 		Logger:    writer,
 		DebugMode: debug,
 	}

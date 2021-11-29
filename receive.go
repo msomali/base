@@ -44,13 +44,13 @@ var (
 
 type (
 	receiver struct {
-		mu sync.Mutex
+		mu        sync.Mutex
 		Logger    stdio.Writer
 		DebugMode bool
 	}
 
 	Receiver interface {
-		Receive(ctx context.Context, rn string, r *http.Request, v interface{},opts...OptionFunc) (*Receipt, error)
+		Receive(ctx context.Context, rn string, r *http.Request, v interface{}, opts ...OptionFunc) (*Receipt, error)
 	}
 
 	BasicAuth struct {
@@ -70,26 +70,26 @@ type (
 
 func NewReceiver(writer stdio.Writer, debug bool) Receiver {
 	return &receiver{
-		mu: sync.Mutex{},
+		mu:        sync.Mutex{},
 		Logger:    writer,
 		DebugMode: debug,
 	}
 }
 
-func (rc *receiver)update(params *Params) {
-    rc.mu.Lock()
-    defer rc.mu.Unlock()
+func (rc *receiver) update(params *Params) {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
 	if params != nil {
 		rc.Logger = params.Logger
 		rc.DebugMode = params.DebugMode
 	}
 }
 
-func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v interface{},opts...OptionFunc) (*Receipt, error) {
+func (rc *receiver) Receive(ctx context.Context, rn string, r *http.Request, v interface{}, opts ...OptionFunc) (*Receipt, error) {
 	params := &Params{
-        DebugMode: rc.DebugMode,
-        Logger:    rc.Logger,
-    }
+		DebugMode: rc.DebugMode,
+		Logger:    rc.Logger,
+	}
 
 	for _, opt := range opts {
 		opt(params)
@@ -188,5 +188,3 @@ func (rc *receiver) logRequest(name string, request *http.Request) {
 	}
 	return
 }
-
-

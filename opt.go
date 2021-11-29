@@ -22,5 +22,3 @@ func LoggerOption(writer io.Writer) OptionFunc {
 		params.Logger = writer
 	}
 }
-
-

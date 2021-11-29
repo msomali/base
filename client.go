@@ -44,7 +44,7 @@ const (
 
 type (
 	Client struct {
-		mu sync.Mutex
+		mu        sync.Mutex
 		Http      *http.Client
 		Logger    stdio.Writer // for logging purposes
 		DebugMode bool
@@ -55,19 +55,19 @@ type (
 )
 
 //SetLogger set logger for client
-func (c *Client)SetLogger(writer stdio.Writer)  {
+func (c *Client) SetLogger(writer stdio.Writer) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if writer != nil {
-        c.Logger = writer
-    }
+		c.Logger = writer
+	}
 }
 
 //SetDebugMode set debug mode for client
-func (c *Client)SetDebugMode(debugMode bool)  {
-    c.mu.Lock()
-    defer c.mu.Unlock()
-    c.DebugMode = debugMode
+func (c *Client) SetDebugMode(debugMode bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.DebugMode = debugMode
 }
 
 func NewClient(opts ...ClientOption) *Client {
@@ -75,7 +75,7 @@ func NewClient(opts ...ClientOption) *Client {
 		Timeout: defaultTimeout,
 	}
 	client := &Client{
-		mu: sync.Mutex{},
+		mu:        sync.Mutex{},
 		Http:      defClient,
 		Logger:    io.StdErr,
 		DebugMode: true,

@@ -45,7 +45,7 @@ func Test_BuildRequest(t *testing.T) {
 	}
 
 	headerModifier := func(headers map[string]string) RequestModifier {
-		return func(req *http.Request) error{
+		return func(req *http.Request) error {
 			for key, value := range headers {
 				req.Header.Set(key, value)
 			}
@@ -54,12 +54,12 @@ func Test_BuildRequest(t *testing.T) {
 	}
 
 	payloadModifier := func(payload interface{}) RequestModifier {
-		return func(req *http.Request) error{
+		return func(req *http.Request) error {
 			pt := categorizeContentType(req.Header.Get("Content-Type"))
 			buf, err := MarshalPayload(pt, payload)
 			if err != nil {
-                return err
-            }
+				return err
+			}
 			req.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
 
 			return nil
