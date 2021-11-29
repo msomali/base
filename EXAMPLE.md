@@ -13,7 +13,7 @@ import (
 
 type (
 	User struct {
-		Name  string `json:"name,omitempty"`
+		RequestName  string `json:"name,omitempty"`
 		Age   int    `json:"age,omitempty"`
 		Email string `json:"email,omitempty"`
 	}
@@ -115,7 +115,7 @@ import (
 
 func TestUserHandler(t *testing.T) {
 	u := User{
-		Name:  "KingKaka",
+		RequestName:  "KingKaka",
 		Age:   40,
 		Email: "kaka@mkubwa.com",
 	}

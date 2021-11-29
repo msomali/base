@@ -72,14 +72,12 @@ type (
 
 	RequestInformer interface {
 		fmt.Stringer
-		Endpoint() string
-		Method() string
-		// Name returns the name of the request
-		Name() string
-
-		// MNO returns the name of the mno
-		MNO() string
-		Group() string
+		RequestBaseURL() string
+		RequestEndpoint() string
+		RequestMethod() string
+		RequestName() string
+		RecipientMNO() string
+		RequestGroup() string
 	}
 
 	// RequestModifier is a func that can be injected into NewRequestWithContext
@@ -146,10 +144,13 @@ func NewRequestBuilder(name, method, basePath string) *RequestBuilder {
 
 var _ requestBuilder = (*RequestBuilder)(nil)
 
-func MakeInternalRequest(basePath, endpoint string, requestType RequestInformer, payload interface{}, opts ...RequestOption) *Request {
-	url := appendEndpoint(basePath, endpoint)
-	method := requestType.Method()
-	return NewRequest(requestType.String(), method, url, payload, opts...)
+func MakeInternalRequest(informer RequestInformer, payload interface{}, opts ...RequestOption) *Request {
+	baseURL := informer.RequestBaseURL()
+	endpoint := informer.RequestEndpoint()
+	method := informer.RequestMethod()
+	name := informer.String()
+	url := appendEndpoint(baseURL, endpoint)
+	return NewRequest(name, method, url, payload, opts...)
 }
 
 func NewRequest(name, method, url string, payload interface{}, opts ...RequestOption) *Request {
